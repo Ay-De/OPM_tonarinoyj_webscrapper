@@ -35,25 +35,29 @@ class HeadlessBrowser:
 
                 #self.parser = etree.XMLParser(recover=True)
                 xx = self.webdriver.find_element(by=By.TAG_NAME, value='body').text
-                namespaces = {'giga': "https://gigaviewer.com"}
+                namespaces = {'xmlns': "http://www.w3.org/2005/Atom"}
                 self.tree = ET.fromstring(xx)
-                print(self.tree.findall('link href'))
-                print(self.tree)
-                self.link = self.tree.findall('./xmlns:entry', namespaces)
-                print(self.link)
-                for n in self.tree.iter('title'):
-                    print(n)
 
-                print('link: {}'.format(self.link))
+                for e in self.tree.findall('{http://www.w3.org/2005/Atom}entry'):
+                    name = e.find('{http://www.w3.org/2005/Atom}title')
+                    l = e.find('{http://www.w3.org/2005/Atom}link')
+                    print(name.text, l.get('href'))
+
+                res = [t.text for t in self.elems]
+                print(self.elems)
+             #   for child in self.tree:
+             #       for l in child:
+             #           print(child.tag, child.text)
+
+            #    self.tree.iter('{http://www.w3.org/2005/Atom}link href')
+
+            #    for t in self.tree.findall('title', namespaces=namespaces):
+            #        print(t.tag, t.attrib)
+
+
+               # print('link: {}'.format(self.link))
                 print('link:{} {}'.format(self.link, self.link.get('href')))
 
-                for link in self.root.findall('./xmlns:entry/xmlns:link'):
-                    print(self.link.get('href'))
-
-                self.soup = bs(self.webdriver.page_source, 'lxml')
-                print(self.soup)
-                self.chapters = self.soup.find_all('entry')
-                print(self.chapters)
 
         self.headless_browser = Downloader()
         return self.headless_browser
