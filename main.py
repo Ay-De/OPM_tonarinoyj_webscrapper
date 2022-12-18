@@ -1,5 +1,4 @@
 import requests
-from bs4 import BeautifulSoup as bs
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.edge.options import Options
@@ -8,18 +7,23 @@ import re
 
 
 class HeadlessBrowser:
+    
     def __enter__(self):
 
         class Downloader:
             def __init__(self):
+
+                self.chapters = {}
+
                 self.options = Options()
-                # options.add_argument('headless')
+                self.options.add_argument('headless')
                 self.options.add_argument('window-size=1920x1080')
                 self.options.add_argument('disable-extensions')
                 self.webdriver = webdriver.Edge(options=self.options)
 
                 self.OPM_chapters_url = 'https://tonarinoyj.jp/atom/series/13932016480028984490'
                 self._get_chapters(self.OPM_chapters_url)
+
 
             def _get_chapters(self, chapters_url):
                 self.webdriver.get(chapters_url)
@@ -33,14 +37,14 @@ class HeadlessBrowser:
                 #pattern = re.compile(r"[0-9]+", re.IGNORECASE)
                 for e in self.tree.findall('{http://www.w3.org/2005/Atom}entry'):
                     title = e.find('{http://www.w3.org/2005/Atom}title').text
-                    print(re.findall(r"[0-9]+", title))
-                    l = e.find('{http://www.w3.org/2005/Atom}link')
-                    print(title, l.get('href'))
+                    title = re.findall(r"[0-9]+", title)
+                    url = e.find('{http://www.w3.org/2005/Atom}link').get('href')
 
-                res = [t.text for t in self.elems]
-                print(self.elems)
-
-                print('link:{} {}'.format(self.link, self.link.get('href')))
+                    if title:
+                        self.chapters.update({title[0]: url})
+                        
+                
+                #print('link:{} {}'.format(self.link, self.link.get('href')))
 
 
         self.headless_browser = Downloader()
@@ -53,6 +57,9 @@ class HeadlessBrowser:
 def main():
 
     with HeadlessBrowser() as headless:
+
+        print(headless.chapters['1'])
+
         print("ok")
 
 
