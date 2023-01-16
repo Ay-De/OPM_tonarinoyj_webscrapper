@@ -11,10 +11,22 @@ import re
 
 class SetupWebdriver:
     def __init__(self):
-        self.chromium_dir = 'C:\Program Files (x86)\Microsoft\Edge\Application'
-        self.version = self.get_chromium_version(self.chromium_dir)
-        self.download_webdriver(self.version)
-        self.unzip
+
+        if os.path.isfile(os.getcwd() + '\\msedgedriver.exe'):
+            print('webdriver already exists')
+
+            try:
+                webdriver.Edge()
+            except Exception as e:
+                if 'WebDriver only supports' in str(e.args):
+                    proper_version = re.search('([0-9]+(\.[0-9]+)+)', str(e.args))[0]
+                    self.download_webdriver(proper_version)
+                    self.unzip()
+        else:
+            self.chromium_dir = 'C:\Program Files (x86)\Microsoft\Edge\Application'
+            self.version = self.get_chromium_version(self.chromium_dir)
+            self.download_webdriver(self.version)
+            self.unzip()
         
     def get_chromium_version(self, chromium_dir):
         v = [d.path.split("\\")[-1] for d in os.scandir(chromium_dir) if d.is_dir() and d.path.split("\\")[-1].split(".")[0].isnumeric()]
@@ -24,14 +36,19 @@ class SetupWebdriver:
         self.url = 'https://msedgedriver.azureedge.net/' + version + '/edgedriver_win64.zip'
         response = requests.get(self.url, stream=True)
 
+        download_size_bytes = int(response.headers.get('content-length', 0))
+        progress_bar = tqdm(total=download_size_bytes, unit='iB', unit_scale=True)
+
         with open('edgedriver_win64.zip', 'wb') as f:
-            for data in tqdm(response.iter_content()):
+            for data in response.iter_content(1024):
+                progress_bar.update(len(data))
                 f.write(data)
+        progress_bar.close()
 
     def unzip(self):
-        with open(ZipFile('edgedriver_win64.zip', 'r')) as zip:
+        with ZipFile('edgedriver_win64.zip', 'r') as zip:
             zip.extract('msedgedriver.exe')
-
+        zip.close()
 
 class HeadlessBrowser:
     
