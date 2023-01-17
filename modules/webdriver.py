@@ -18,18 +18,20 @@ def setup_webdriver():
             webdriver.Edge()
         except Exception as e:
             if 'WebDriver only supports' in str(e.args):
+                print("wrong ver")
                 proper_version = \
                     re.search('([0-9]+(\.[0-9]+)+)', str(e.args))[0]
 
                 _download_webdriver(proper_version)
                 unzip('edgedriver_win64.zip', 'msedgedriver.exe')
-
+                os.remove('edgedriver_win64.zip')
     else:
         chromium_dir = 'C:\Program Files (' \
                             'x86)\Microsoft\Edge\Application'
         version = _get_chromium_version(chromium_dir)
         _download_webdriver(version)
         unzip('edgedriver_win64.zip', 'msedgedriver.exe')
+        os.remove('edgedriver_win64.zip')
 
 def _get_chromium_version(chromium_dir):
     v = [d.path.split("\\")[-1] for d in os.scandir(chromium_dir) if
