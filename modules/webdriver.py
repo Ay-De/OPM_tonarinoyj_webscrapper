@@ -2,9 +2,10 @@ import os
 import requests
 import re
 from selenium import webdriver
+from selenium.webdriver.edge.options import Options
 from tqdm import tqdm
-
 from modules.helpers import unzip
+
 
 def setup_webdriver():
     """This function will install the webdriver for selenium.
@@ -12,19 +13,24 @@ def setup_webdriver():
     installs the fitting webdriver."""
 
     if os.path.isfile(os.getcwd() + '\\msedgedriver.exe'):
-        print('Found webdriver, checking version...')
-
         try:
-            webdriver.Edge()
+            _options = Options()
+            _options.add_argument('headless')
+            _webdriver = webdriver.Edge(options=_options)
+            _webdriver.quit()
+
         except Exception as e:
-            if 'WebDriver only supports' in str(e.args):
-                print("wrong ver")
+            if 'WebDriver only supports'.lower() in e.msg.lower():
+                print('Wrong webdriver version detected. '
+                      'Downloading proper version...')
+
                 proper_version = \
-                    re.search('([0-9]+(\.[0-9]+)+)', str(e.args))[0]
+                    re.search('([0-9]+(\.[0-9]+)+)', e.msg)[0]
 
                 _download_webdriver(proper_version)
                 unzip('edgedriver_win64.zip', 'msedgedriver.exe')
                 os.remove('edgedriver_win64.zip')
+
     else:
         chromium_dir = 'C:\Program Files (' \
                             'x86)\Microsoft\Edge\Application'
@@ -33,10 +39,12 @@ def setup_webdriver():
         unzip('edgedriver_win64.zip', 'msedgedriver.exe')
         os.remove('edgedriver_win64.zip')
 
+
 def _get_chromium_version(chromium_dir):
     v = [d.path.split("\\")[-1] for d in os.scandir(chromium_dir) if
          d.is_dir() and d.path.split("\\")[-1].split(".")[0].isnumeric()]
     return sorted(v, reverse=True)[0]
+
 
 def _download_webdriver(version):
     url = 'https://msedgedriver.azureedge.net/' + version + \
