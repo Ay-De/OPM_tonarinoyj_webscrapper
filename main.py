@@ -43,17 +43,19 @@ class HeadlessBrowser:
                         '{http://www.w3.org/2005/Atom}entry'):
                     title = e.find('{http://www.w3.org/2005/Atom}title').text
                     title = re.findall(r"[0-9]+", title)
-                    url = e.find('{http://www.w3.org/2005/Atom}link').get(
-                        'href')
+                    url = e.find('{http://www.w3.org/2005/Atom}link').get('href')
 
                     if title:
-                        self.chapters.update({title[0]: url})
+                        if int(title[0]) > 220:
+                            self.chapters.update({title[0]: url})
+
+                            self._get_image_links(title[0], url)
 
                 # print('link:{} {}'.format(self.link, self.link.get('href')))
 
-            def _get_image_links(self, chapter):
+            def _get_image_links(self, chapter_num, chapter_url):
 
-                self.webdriver.get('view-source:' + chapter)
+                self.webdriver.get('view-source:' + chapter_url + '.json')
                 self.content = self.webdriver.page_source
                 self.chapter_content = self.webdriver.find_element(By.CLASS_NAME,
                                                          'line-content').text
@@ -61,11 +63,16 @@ class HeadlessBrowser:
                 self.chapter_pages = \
                             self.chapter_data['readableProduct']['pageStructure']['pages']
 
+                self._page_num = 0
+                self._chapter = { }
                 for page in self.chapter_pages:
                     if 'src' in page:
-                        page_link = page['src']
+                        self._page_num = self._page_num + 1
+                        self._page_link = page['src']
 
-                        #Todo: Update dict, replace chapter link with list of image links
+                        self._chapter.update({str(self._page_num): self._page_link})
+
+                self.chapters.update({chapter_num: self._chapter})
 
         self.headless_browser = TonariScrapper()
         return self.headless_browser
@@ -78,7 +85,7 @@ def main():
     setup_webdriver()
 
     with HeadlessBrowser() as headless:
-        print(headless.chapters['1'])
+        print(headless.chapters['221'])
 
         print("ok")
 
