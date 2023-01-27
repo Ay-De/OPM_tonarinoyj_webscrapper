@@ -7,6 +7,7 @@ import xml.etree.ElementTree as ET
 import re
 
 from modules.webdriver import setup_webdriver
+from modules.helpers import download
 
 
 class HeadlessBrowser:
@@ -17,10 +18,11 @@ class HeadlessBrowser:
 
             manga_url = \
                 'https://tonarinoyj.jp/atom/series/13932016480028984490'
+            download_location = 'D:\OPM\\'
 
             def __init__(self):
 
-                self.chapters = {}
+                self.chapter_links = {}
 
                 self.options = Options()
                 self.options.add_argument('headless')
@@ -47,7 +49,7 @@ class HeadlessBrowser:
 
                     if title:
                         if int(title[0]) > 220:
-                            self.chapters.update({title[0]: url})
+                            self.chapter_links.update({title[0]: url})
 
                             self._get_image_links(title[0], url)
 
@@ -72,7 +74,13 @@ class HeadlessBrowser:
 
                         self._chapter.update({str(self._page_num): self._page_link})
 
-                self.chapters.update({chapter_num: self._chapter})
+                self.chapter_links.update({chapter_num: self._chapter})
+
+
+            def _download_chapters(self):
+                for c_num in self.chapter_links.values():
+                    for c_page, c_links in c_num.items():
+                        download(c_links, self.download_location + c_num + '\\' + c_page, 'jpeg')
 
         self.headless_browser = TonariScrapper()
         return self.headless_browser
@@ -85,7 +93,7 @@ def main():
     setup_webdriver()
 
     with HeadlessBrowser() as headless:
-        print(headless.chapters['221'])
+        print(headless.chapter_links['221'])
 
         print("ok")
 
