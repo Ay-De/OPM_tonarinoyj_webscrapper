@@ -1,3 +1,5 @@
+import os
+import requests
 from zipfile import ZipFile
 
 
@@ -16,3 +18,15 @@ def unzip(zipfile: str, *args: [str], unziploc: [str] = None) -> None:
             zip.extractall(path=unziploc, members=args)
 
     zip.close()
+
+
+def download(url: str, filepath: str, filetype: str) -> None:
+    response = requests.get(url, stream=True)
+
+    filename = filepath + '.' + filetype
+
+    if response.status_code == 200:
+        with open(filename, 'wb') as img:
+            img.write(response.content)
+            img.flush()
+            os.fsync(img.fileno())

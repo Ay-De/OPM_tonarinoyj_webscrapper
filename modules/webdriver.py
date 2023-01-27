@@ -55,8 +55,11 @@ def _download_webdriver(version):
     progress_bar = tqdm(total=download_size_bytes, unit='iB',
                         unit_scale=True)
 
-    with open('edgedriver_win64.zip', 'wb') as f:
-        for data in response.iter_content(1024):
-            progress_bar.update(len(data))
-            f.write(data)
-    progress_bar.close()
+    if response.status_code == 200:
+        with open('edgedriver_win64.zip', 'wb') as f:
+            for data in response.iter_content(1024):
+                progress_bar.update(len(data))
+                f.write(data)
+                f.flush()
+                os.fsync(f.fileno())
+        progress_bar.close()

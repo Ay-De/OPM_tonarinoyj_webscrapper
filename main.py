@@ -51,7 +51,6 @@ class HeadlessBrowser:
 
                             self._get_image_links(title[0], url)
 
-                # print('link:{} {}'.format(self.link, self.link.get('href')))
 
             def _get_image_links(self, chapter_num, chapter_url):
 
@@ -60,6 +59,7 @@ class HeadlessBrowser:
                 self.chapter_content = self.webdriver.find_element(By.CLASS_NAME,
                                                          'line-content').text
                 self.chapter_data = json.loads(self.chapter_content)
+
                 self.chapter_pages = \
                             self.chapter_data['readableProduct']['pageStructure']['pages']
 
