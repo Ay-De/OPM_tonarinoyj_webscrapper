@@ -21,16 +21,18 @@ class HeadlessBrowser:
             def __init__(self):
 
                 self.manga_url = 'https://tonarinoyj.jp/episode/316190247048704205'
-                self.tonari_url = 'https://tonarinoyj.jp/episode/'
                 self.download_location = 'D:\OPM\\'
 
                 self.chapter_links = {}
 
-                self.options = Options()
+                self._tonarinoyj_url = self.manga_url.rsplit('/', 2)[0] \
+                    if list(self.manga_url)[-1] == '/' else self.manga_url.rsplit('/', 1)[0]
+
+                self._options = Options()
                 #self.options.add_argument('headless')
-                self.options.add_argument('window-size=1920x1080')
-                self.options.add_argument('disable-extensions')
-                self.webdriver = webdriver.Edge(options=self.options)
+                self._options.add_argument('window-size=1920x1080')
+                self._options.add_argument('disable-extensions')
+                self.webdriver = webdriver.Edge(options=self._options)
 
                 self.webdriver.set_network_conditions(
                         offline=False,
@@ -48,7 +50,7 @@ class HeadlessBrowser:
                         'Chapter number, range (ex 1-3), all or latest')
 
                     if self._download_selection.lower() == 'latest':
-                        print(list(self.chapter_links.keys()))
+                        print(list(self.chapter_links.keys())[0])
                         #break
 
                     elif self._download_selection.lower() == 'all':
@@ -116,34 +118,17 @@ class HeadlessBrowser:
 
                 regx = re.compile(r".*?\[[^\d]*(\d+)[^\d]*\].*")
 
+                _chapters_private = [regx.findall(x.text)[0] for x in _chapters_private]
+
                 for c in _chapters_available:
                     c_num = regx.findall(c.text)
-                    c_url = self.tonari_url + c.get_attribute('data-id')
+                    c_url = self._tonarinoyj_url + c.get_attribute('data-id')
 
-                    if c_num:
-                        self.chapter_links.update({int(c_num[0]): c_url})
+                    if c_num and c_num not in _chapters_private:
+                        self.chapter_links.update({c_num[0]: c_url})
 
-                _all_chapters = sorted(list(self.chapter_links.keys()))
-
-                _chapter_diffs = [x - y for (x, y) in zip(_all_chapters[1:], _all_chapters)]
-
-                _idx_skipped_chapters = [i for i, v in enumerate(_chapter_diffs) if v > 1]
-
-                if len(_idx_skipped_chapters) > 1:
-
-                    #Add here logic to find multiple gaps of unpublished chapters
-                    print(f'Note: Chapters {_all_chapters[_idx_skipped_chapters[0]] + 1} to '
-                          f'{_all_chapters[_idx_skipped_chapters[0]]} are missing. '
-                          f'Probably unpublished.')
-
-                elif len(_idx_skipped_chapters) == 1:
-                    if int(_idx_skipped_chapters[0]) > 1:
-                        print(f'Note: Chapters {_all_chapters[_idx_skipped_chapters[0]] + 1} to '
-                              f'{_all_chapters[_idx_skipped_chapters[0]]} are missing. '
-                              f'Probably unpublished.')
-                    else:
-                        print(f'Note: Chapter {_all_chapters[_idx_skipped_chapters[0]]} is missing. '
-                              f'Probably unpublished.')
+                if len(_chapters_private) > 0:
+                    print(f'Note: Chapters {_chapters_private} are private and not available.')
 
             def _get_image_links(self, chapter_num, chapter_url):
 
