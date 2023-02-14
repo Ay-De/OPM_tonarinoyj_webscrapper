@@ -37,11 +37,16 @@ class HeadlessBrowser:
                 self.webdriver.set_network_conditions(
                         offline=False,
                         latency=1,  # additional latency (ms)
-                        download_throughput= 28*500*1024,  # maximal throughput
+                        download_throughput= 50*500*1024,  # maximal throughput
                         upload_throughput=500*1024)  # maximal throughput
 
                 self._get_chapters_links()
 
+                self._chapter_selection()
+
+
+
+            def _chapter_selection(self):
                 print(f'********\nFound {len(self.chapter_links.keys())} '
                       f'chapters. Select chapters for download.\nOptions:')
 
@@ -51,6 +56,7 @@ class HeadlessBrowser:
 
                     if self._download_selection.lower() == 'latest':
                         print(list(self.chapter_links.keys())[0])
+                        self._get_chapter_image_links(title[0], url)
                         #break
 
                     elif self._download_selection.lower() == 'all':
@@ -76,19 +82,10 @@ class HeadlessBrowser:
                                 print('Invalid input. Example input for range: 1-5')
 
 
-                self._get_image_links(title[0], url)
-
             def _get_chapters_links(self):
 
                 self.webdriver.get(self.manga_url)
                 wait = WebDriverWait(self.webdriver, 10)
-
-                # wait.until(EC.visibility_of_element_located((By.XPATH,
-                #                                        '//div[@class="series-contents"]//div['
-                #                                        '@class="js-readable-product-list"]')))
-
-               # _chap_list_cont = self.webdriver.find_element(By.XPATH, '//div[@class="series-contents"]//div['
-                #                                       '@class="js-readable-product-list"]')
 
                 _chap_list_cont = self.webdriver.find_element(By.XPATH,
                                                               '//button[@class="js-read-more-button"]')
@@ -130,7 +127,7 @@ class HeadlessBrowser:
                 if len(_chapters_private) > 0:
                     print(f'Note: Chapters {_chapters_private} are private and not available.')
 
-            def _get_image_links(self, chapter_num, chapter_url):
+            def _get_chapter_image_links(self, chapter_num, chapter_url):
 
                 self.webdriver.get('view-source:' + chapter_url + '.json')
                 self.content = self.webdriver.page_source
