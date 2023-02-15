@@ -20,7 +20,7 @@ class HeadlessBrowser:
 
             def __init__(self):
 
-                self.manga_url = 'https://tonarinoyj.jp/episode/316190247048704205'
+                self.manga_url = 'https://tonarinoyj.jp/episode/4855956445072905450'
                 self.download_location = 'D:\OPM\\'
 
                 self.chapter_links = {}
@@ -45,9 +45,10 @@ class HeadlessBrowser:
                 self._chapter_selection()
 
 
-
             def _chapter_selection(self):
-                print(f'********\nFound {len(self.chapter_links.keys())} '
+                self._chapters_nums = list(self.chapter_links.keys())
+                self._chapters_nums.sort(reverse=False)
+                print(f'********\nFound {len(self._chapters_nums)} '
                       f'chapters. Select chapters for download.\nOptions:')
 
                 while True:
@@ -56,11 +57,12 @@ class HeadlessBrowser:
 
                     if self._download_selection.lower() == 'latest':
                         print(list(self.chapter_links.keys())[0])
-                        self._get_chapter_image_links(title[0], url)
+                        #self._get_chapter_image_links(title[0], url)
                         #break
 
                     elif self._download_selection.lower() == 'all':
-                        print(len(list(self.chapter_links.keys())))
+                        print('All {} Chapters will be downloaded.'.format(
+                            len(list(self.chapter_links.keys()))))
                         #break
 
                     else:
@@ -79,7 +81,7 @@ class HeadlessBrowser:
                                 #break
 
                             except ValueError:
-                                print('Invalid input. Example input for range: 1-5')
+                                print('Invalid input. Example input for range: 1-3')
 
 
             def _get_chapters_links(self):
