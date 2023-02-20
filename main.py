@@ -40,7 +40,7 @@ class HeadlessBrowser:
                         download_throughput= 50*500*1024,  # maximal throughput
                         upload_throughput=500*1024)  # maximal throughput
 
-                self._get_chapters_links()
+                self._get_chapters()
 
                 self._chapter_selection()
 
@@ -48,6 +48,7 @@ class HeadlessBrowser:
             def _chapter_selection(self):
                 self._chapters_nums = list(self.chapter_links.keys())
                 self._chapters_nums.sort(reverse=False)
+
                 print(f'********\nFound {len(self._chapters_nums)} '
                       f'chapters. Select chapters for download.\nOptions:')
 
@@ -56,7 +57,7 @@ class HeadlessBrowser:
                         'Chapter number, range (ex 1-3), all or latest')
 
                     if self._download_selection.lower() == 'latest':
-                        print(list(self.chapter_links.keys())[0])
+                        print(list(self.chapter_links.keys())[-1])
                         #self._get_chapter_image_links(title[0], url)
                         #break
 
@@ -84,7 +85,7 @@ class HeadlessBrowser:
                                 print('Invalid input. Example input for range: 1-3')
 
 
-            def _get_chapters_links(self):
+            def _get_chapters(self):
 
                 self.webdriver.get(self.manga_url)
                 wait = WebDriverWait(self.webdriver, 10)
@@ -124,7 +125,7 @@ class HeadlessBrowser:
                     c_url = self._tonarinoyj_url + c.get_attribute('data-id')
 
                     if c_num and c_num not in _chapters_private:
-                        self.chapter_links.update({c_num[0]: c_url})
+                        self.chapter_links.update({int(c_num[0]): c_url})
 
                 if len(_chapters_private) > 0:
                     print(f'Note: Chapters {_chapters_private} are private and not available.')
