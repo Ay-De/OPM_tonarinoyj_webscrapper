@@ -14,6 +14,8 @@ from modules.helpers import download
 
 class HeadlessBrowser:
 
+    #Use a custom enter and exit class function to ensure the chromium process is stopped
+    #even if the programm crashes
     def __enter__(self):
 
         class TonariScrapper:
@@ -23,10 +25,11 @@ class HeadlessBrowser:
                 self.manga_url = 'https://tonarinoyj.jp/episode/4855956445072905450'
                 self.download_location = 'D:\OPM\\'
 
-                self.chapter_links = {}
+                self._chapter_links = {}
+                self._chapter_page_links = {}
 
-                self._tonarinoyj_url = self.manga_url.rsplit('/', 2)[0] \
-                    if list(self.manga_url)[-1] == '/' else self.manga_url.rsplit('/', 1)[0]
+                #Get the Website base URL
+                self._tonarinoyj_url = self.manga_url.rsplit('/', 1)[0] + '/'
 
                 self._options = Options()
                 #self.options.add_argument('headless')
@@ -34,19 +37,20 @@ class HeadlessBrowser:
                 self._options.add_argument('disable-extensions')
                 self.webdriver = webdriver.Edge(options=self._options)
 
-                self.webdriver.set_network_conditions(
-                        offline=False,
-                        latency=1,  # additional latency (ms)
-                        download_throughput= 50*500*1024,  # maximal throughput
-                        upload_throughput=500*1024)  # maximal throughput
+            #    self.webdriver.set_network_conditions(
+            #            offline=False,
+            #            latency=1,  # additional latency (ms)
+            #            download_throughput= 50*500*1024,  # maximal throughput
+            #            upload_throughput=500*1024)  # maximal throughput
 
                 self._get_chapters()
 
                 self._chapter_selection()
 
+                print("last step")
 
             def _chapter_selection(self):
-                self._chapters_nums = list(self.chapter_links.keys())
+                self._chapters_nums = list(self._chapter_links.keys())
                 self._chapters_nums.sort(reverse=False)
 
                 print(f'********\nFound {len(self._chapters_nums)} '
@@ -57,33 +61,33 @@ class HeadlessBrowser:
                         'Chapter number, range (ex 1-3), all or latest')
 
                     if self._download_selection.lower() == 'latest':
-                        print(list(self.chapter_links.keys())[-1])
+                        print(self._chapters_nums[-1])
+                        self._get_chapter_page_links(self._chapters_nums[-1])
                         #self._get_chapter_image_links(title[0], url)
                         #break
 
                     elif self._download_selection.lower() == 'all':
                         print('All {} Chapters will be downloaded.'.format(
-                            len(list(self.chapter_links.keys()))))
+                            len(list(self._chapter_links.keys()))))
                         #break
+
+                    elif self._download_selection.isdigit():
+                        self._get_chapter_page_links(int(self._download_selection))
+                        break
 
                     else:
                         try:
-                            if int(self._download_selection):
-                                print(int(self._download_selection))
-                                #break
+                            self._chap_range_lower, \
+                            self._chap_range_upper = self._download_selection.split('-')
+
+                            print('Chapters from {} to {} will be downloaded.'.format(
+                                self._chap_range_lower, self._chap_range_upper))
+                            #break
 
                         except ValueError:
-                            try:
-                                self._chap_range_lower, \
-                                self._chap_range_upper = self._download_selection.split('-')
+                            print('Invalid input. Example input for range: 1-3')
 
-                                print('Chapters from {} to {} will be downloaded.'.format(
-                                    self._chap_range_lower, self._chap_range_upper))
-                                #break
-
-                            except ValueError:
-                                print('Invalid input. Example input for range: 1-3')
-
+                        #break
 
             def _get_chapters(self):
 
@@ -125,14 +129,15 @@ class HeadlessBrowser:
                     c_url = self._tonarinoyj_url + c.get_attribute('data-id')
 
                     if c_num and c_num not in _chapters_private:
-                        self.chapter_links.update({int(c_num[0]): c_url})
+                        self._chapter_links.update({int(c_num[0]): c_url})
 
                 if len(_chapters_private) > 0:
                     print(f'Note: Chapters {_chapters_private} are private and not available.')
 
-            def _get_chapter_image_links(self, chapter_num, chapter_url):
 
-                self.webdriver.get('view-source:' + chapter_url + '.json')
+            def _get_chapter_page_links(self, chapter_num):
+
+                self.webdriver.get('view-source:' + self._chapter_links[chapter_num] + '.json')
                 self.content = self.webdriver.page_source
                 self.chapter_content = self.webdriver.find_element(By.CLASS_NAME,
                                                                    'line-content').text
@@ -150,10 +155,10 @@ class HeadlessBrowser:
 
                         self._chapter.update({str(self._page_num): self._page_link})
 
-                self.chapter_links.update({chapter_num: self._chapter})
+                self._chapter_page_links.update({chapter_num: self._chapter})
 
             def _download_chapters(self):
-                for c_num in self.chapter_links.values():
+                for c_num in self._chapter_links.values():
                     for c_page, c_links in c_num.items():
                         download(c_links, self.download_location + c_num + '\\' + c_page, 'jpeg')
 
