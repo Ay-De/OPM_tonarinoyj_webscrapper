@@ -7,176 +7,163 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.edge.options import Options
 import re
+from multiprocessing import Pool
+from tqdm import tqdm
 
 from modules.webdriver import setup_webdriver
 from modules.helpers import download
 
 
-class HeadlessBrowser:
+class TonariScrapper:
 
-    #Use a custom enter and exit class function to ensure the chromium process is stopped
-    #even if the programm crashes
+    #Use a custom enter and exit function to ensure the chromium process is killed
+    #even if the programm crashes during runtime
     def __enter__(self):
 
-        class TonariScrapper:
+        return self
 
-            def __init__(self):
+    def __init__(self):
 
-                self.manga_url = 'https://tonarinoyj.jp/episode/4855956445072905450'
-                self.download_location = 'D:\OPM\\'
+        self.manga_url = 'https://tonarinoyj.jp/episode/4855956445072905450'
+        self.download_location = 'D:\OPM\\'
 
-                self._chapter_links = {}
-                self._chapter_page_links = {}
+        self._chapter_links = {}
+        self._chapter_page_links = {}
 
-                #Get the Website base URL
-                self._tonarinoyj_url = self.manga_url.rsplit('/', 1)[0] + '/'
+        #Get the Website base URL
+        self._tonarinoyj_url = self.manga_url.rsplit('/', 1)[0] + '/'
 
-                self._options = Options()
-                #self.options.add_argument('headless')
-                self._options.add_argument('window-size=1920x1080')
-                self._options.add_argument('disable-extensions')
-                self.webdriver = webdriver.Edge(options=self._options)
+        self._options = Options()
+        self._options.add_argument('headless')
+        self._options.add_argument('window-size=1920x1080')
+        self._options.add_argument('disable-extensions')
+        self.webdriver = webdriver.Edge(options=self._options)
 
-            #    self.webdriver.set_network_conditions(
-            #            offline=False,
-            #            latency=1,  # additional latency (ms)
-            #            download_throughput= 50*500*1024,  # maximal throughput
-            #            upload_throughput=500*1024)  # maximal throughput
+        self._get_chapters()
 
-                self._get_chapters()
+        self._chapter_selection()
 
-                self._chapter_selection()
+        self._chapter_download()
 
-                print("last step")
+        print('Download complete.')
 
-            def _chapter_selection(self):
-                self._chapters_nums = list(self._chapter_links.keys())
-                self._chapters_nums.sort(reverse=False)
+    def _chapter_selection(self):
+        _chapters_nums = list(self._chapter_links.keys())
+        _chapters_nums.sort(reverse=False)
 
-                print(f'********\nFound {len(self._chapters_nums)} '
-                      f'chapters. Select chapters for download.\nOptions:')
+        print(f'********\nFound {len(_chapters_nums)} '
+              f'chapters. Select chapters for download.\nOptions:')
 
-                while True:
-                    self._download_selection = input(
-                        'Chapter number, range (ex 1-3), all or latest')
+        while True:
+            _download_selection = input('Chapter number, all or latest\n')
 
-                    if self._download_selection.lower() == 'latest':
-                        print(self._chapters_nums[-1])
-                        self._get_chapter_page_links(self._chapters_nums[-1])
-                        #self._get_chapter_image_links(title[0], url)
-                        #break
+            if _download_selection.lower() == 'latest':
+                print('Downloading chapter {}.'.format(_chapters_nums[-1]))
+                self._get_chapter_page_links(_chapters_nums[-1])
+                break
 
-                    elif self._download_selection.lower() == 'all':
-                        print('All {} Chapters will be downloaded.'.format(
-                            len(list(self._chapter_links.keys()))))
-                        #break
+            elif _download_selection.lower() == 'all':
+                print('All {} Chapters will be downloaded.'.format(
+                    len(list(self._chapter_links.keys()))))
 
-                    elif self._download_selection.isdigit():
-                        self._get_chapter_page_links(int(self._download_selection))
-                        break
+                for c in tqdm(_chapters_nums, unit='iB', unit_scale=True):
+                    self._get_chapter_page_links(c)
+                break
 
-                    else:
-                        try:
-                            self._chap_range_lower, \
-                            self._chap_range_upper = self._download_selection.split('-')
+            elif _download_selection.isdigit():
+                self._get_chapter_page_links(int(_download_selection))
+                break
 
-                            print('Chapters from {} to {} will be downloaded.'.format(
-                                self._chap_range_lower, self._chap_range_upper))
-                            #break
+            else:
+                print('Invalid input. Example input (without ""): "42", "all" or "latest"')
 
-                        except ValueError:
-                            print('Invalid input. Example input for range: 1-3')
+    def _get_chapters(self):
 
-                        #break
+        self.webdriver.get(self.manga_url)
+        wait = WebDriverWait(self.webdriver, 10)
 
-            def _get_chapters(self):
+        _chap_list_cont = self.webdriver.find_element(By.XPATH,
+                                                      '//button[@class="js-read-more-button"]')
 
-                self.webdriver.get(self.manga_url)
-                wait = WebDriverWait(self.webdriver, 10)
+        self.webdriver.execute_script('return arguments[0].scrollIntoView();',
+                                      _chap_list_cont)
 
-                _chap_list_cont = self.webdriver.find_element(By.XPATH,
-                                                              '//button[@class="js-read-more-button"]')
+        _chapter_container_loaded = wait.until(EC.visibility_of_element_located((By.XPATH,
+                                                         '//span[@class="loading-text"]')))
+        wait.until(lambda x: 'hidden' in _chapter_container_loaded.get_attribute('class'))
 
-                self.webdriver.execute_script('return arguments[0].scrollIntoView();',
-                                              _chap_list_cont)
+        while True:
 
-                _chapter_container_loaded = wait.until(EC.visibility_of_element_located((By.XPATH,
-                                                                 '//span[@class="loading-text"]')))
-                wait.until(lambda x: 'hidden' in _chapter_container_loaded.get_attribute('class'))
+            try:
+                wait.until(EC.visibility_of_element_located(
+                            (By.XPATH, '//button[@class="js-read-more-button"]'))).click()
 
-                while True:
+            except (TimeoutException, StaleElementReferenceException):
+                break
 
-                    try:
-                        wait.until(EC.visibility_of_element_located(
-                                    (By.XPATH, '//button[@class="js-read-more-button"]'))).click()
+        _chapters_available = self.webdriver.find_elements(By.XPATH,
+                '//*[@class=" episode" and not(contains(@class, "private episode"))] | '
+                '//*[@class="episode current-readable-product"]')
 
-                    except (TimeoutException, StaleElementReferenceException):
-                        break
+        _chapters_private = self.webdriver.find_elements(By.XPATH,
+                '//*[@class="private episode"]')
 
-                _chapters_available = self.webdriver.find_elements(By.XPATH,
-                        '//*[@class=" episode" and not(contains(@class, "private episode"))] | '
-                        '//*[@class="episode current-readable-product"]')
+        regx = re.compile(r".*?\[[^\d]*(\d+)[^\d]*\].*")
 
-                _chapters_private = self.webdriver.find_elements(By.XPATH,
-                        '//*[@class="private episode"]')
+        _chapters_private = [regx.findall(x.text)[0] for x in _chapters_private]
 
-                regx = re.compile(r".*?\[[^\d]*(\d+)[^\d]*\].*")
+        for c in _chapters_available:
+            c_num = regx.findall(c.text)
+            c_url = self._tonarinoyj_url + c.get_attribute('data-id')
 
-                _chapters_private = [regx.findall(x.text)[0] for x in _chapters_private]
+            if c_num and c_num not in _chapters_private:
+                self._chapter_links.update({int(c_num[0]): c_url})
 
-                for c in _chapters_available:
-                    c_num = regx.findall(c.text)
-                    c_url = self._tonarinoyj_url + c.get_attribute('data-id')
-
-                    if c_num and c_num not in _chapters_private:
-                        self._chapter_links.update({int(c_num[0]): c_url})
-
-                if len(_chapters_private) > 0:
-                    print(f'Note: Chapters {_chapters_private} are private and not available.')
+        if len(_chapters_private) > 0:
+            print(f'Note: Chapters {_chapters_private} are private and not available.')
 
 
-            def _get_chapter_page_links(self, chapter_num):
+    def _get_chapter_page_links(self, chapter_num):
 
-                self.webdriver.get('view-source:' + self._chapter_links[chapter_num] + '.json')
-                self.content = self.webdriver.page_source
-                self.chapter_content = self.webdriver.find_element(By.CLASS_NAME,
-                                                                   'line-content').text
-                self.chapter_data = json.loads(self.chapter_content)
+        self.webdriver.get('view-source:' + self._chapter_links[chapter_num] + '.json')
+        content = self.webdriver.page_source
+        chapter_content = self.webdriver.find_element(By.CLASS_NAME,
+                                                           'line-content').text
+        chapter_data = json.loads(chapter_content)
 
-                self.chapter_pages = \
-                    self.chapter_data['readableProduct']['pageStructure']['pages']
+        chapter_pages = chapter_data['readableProduct']['pageStructure']['pages']
 
-                self._page_num = 0
-                self._chapter = {}
-                for page in self.chapter_pages:
-                    if 'src' in page:
-                        self._page_num = self._page_num + 1
-                        self._page_link = page['src']
+        _page_num = 0
+        for page in chapter_pages:
+            if 'src' in page:
+                _page_num = _page_num + 1
+                _page_link = page['src']
 
-                        self._chapter.update({str(self._page_num): self._page_link})
+                self._chapter_page_links.update({(chapter_num, _page_num): _page_link})
 
-                self._chapter_page_links.update({chapter_num: self._chapter})
+    def _chapter_download(self):
 
-            def _download_chapters(self):
-                for c_num in self._chapter_links.values():
-                    for c_page, c_links in c_num.items():
-                        download(c_links, self.download_location + c_num + '\\' + c_page, 'jpeg')
+        input_args = [(p_url,
+                       self.download_location + str(c_num) + '\\',
+                       str(p_num) + '.jpeg')
+                      for (c_num, p_num), p_url in self._chapter_page_links.items()]
 
-        self.headless_browser = TonariScrapper()
-        return self.headless_browser
+        with Pool(3) as pool:
+            pool.starmap(download,
+                         tqdm(input_args, total=len(input_args),
+                              unit='iB', unit_scale=True))
+
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.headless_browser.webdriver.quit()
+        self.webdriver.quit()
 
 
 def main():
+
     setup_webdriver()
 
-    with HeadlessBrowser() as headless:
-        # print(headless.chapter_links['221'])
-
-        print("ok")
-
+    with TonariScrapper() as t:
+        print(t)
 
 if __name__ == '__main__':
     main()
