@@ -25,7 +25,7 @@ class TonariScrapper:
     def __init__(self):
 
         self.manga_url = 'https://tonarinoyj.jp/episode/4855956445072905450'
-        self.download_location = 'D:\OPM\\'
+        self.download_location = 'D:\\OPM\\source\\'
 
         self._chapter_links = {}
         self._chapter_page_links = {}
