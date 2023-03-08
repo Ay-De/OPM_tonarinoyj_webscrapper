@@ -7,3 +7,8 @@ The goal of this project is to create a webscrapper in python to download the ja
 ![Sample: Subsection of a downloaded manga page](sample.jpeg)
 
 The easiest solution for this task would be to just take a screenshot of the displayed manga page. But the purpose of this project isn't to just download the manga chapters, but rather to get more practice in webscrapping and to explore how the images can be reconstructed from this randomized state.
+
+## Current progress
+
+The webscrapping part is finished with the main.py script.
+Splitting the images into the smaller patches is currently done through the jupyter notebook. This step will be implemented into the main program at a later point, once a reliable reconstruction method has been established.
