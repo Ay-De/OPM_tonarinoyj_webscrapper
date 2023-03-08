@@ -1,5 +1,4 @@
 import json
-
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import TimeoutException, StaleElementReferenceException
@@ -19,7 +18,6 @@ class TonariScrapper:
     #Use a custom enter and exit function to ensure the chromium process is killed
     #even if the programm crashes during runtime
     def __enter__(self):
-
         return self
 
     def __init__(self):
@@ -48,6 +46,9 @@ class TonariScrapper:
         print('Download complete.')
 
     def _chapter_selection(self):
+        """
+        This function will check which chapters of the given manga are available
+        """
         _chapters_nums = list(self._chapter_links.keys())
         _chapters_nums.sort(reverse=False)
 
@@ -78,7 +79,10 @@ class TonariScrapper:
                 print('Invalid input. Example input (without ""): "42", "all" or "latest"')
 
     def _get_chapters(self):
-
+        """
+        This function will scrap the available chapters from the tonarinoyj webseite and
+        split found chapters into available and unavailable manga chapters
+        """
         self.webdriver.get(self.manga_url)
         wait = WebDriverWait(self.webdriver, 10)
 
@@ -124,7 +128,10 @@ class TonariScrapper:
 
 
     def _get_chapter_page_links(self, chapter_num):
-
+        """
+        This function scraps the direct links to the manga pages for
+        the user selected manga chapters.
+        """
         self.webdriver.get('view-source:' + self._chapter_links[chapter_num] + '.json')
         content = self.webdriver.page_source
         chapter_content = self.webdriver.find_element(By.CLASS_NAME,
@@ -142,7 +149,11 @@ class TonariScrapper:
                 self._chapter_page_links.update({(chapter_num, _page_num): _page_link})
 
     def _chapter_download(self):
-
+        """
+        This function is downloading the manga pages. Manga pages are stored in their
+        corresponding chapter folders. The download is happening in parallel with 3 parallel
+        downloads.
+        """
         input_args = [(p_url,
                        self.download_location + str(c_num) + '\\',
                        str(p_num) + '.jpeg')

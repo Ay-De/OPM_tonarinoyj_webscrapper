@@ -1,5 +1,6 @@
 import os
 import requests
+from time import sleep
 from zipfile import ZipFile
 
 
@@ -42,3 +43,5 @@ def download(url: str, filepath: str, filename: str) -> None:
 
     else:
         print('Error downloading {} \n'.format(filename))
+
+    sleep(0.5)
