@@ -44,4 +44,4 @@ def download(url: str, filepath: str, filename: str) -> None:
     else:
         print('Error downloading {} \n'.format(filename))
 
-    sleep(0.5)
+    sleep(0.2)
